@@ -6,20 +6,20 @@ import (
 )
 
 type Config struct {
-	Port        string
-	DatabaseURL string
-	RedisURL    string
-	QdrantURL   string
-	OpenAIKey   string
+	Port         string
+	DatabaseURL  string
+	RedisURL     string
+	QdrantURL    string
+	GeminiApiKey string
 }
 
 func Load() (*Config, error) {
 	cfg := &Config{
-		Port:        getEnv("PORT", "8080"),
-		DatabaseURL: os.Getenv("DATABASE_URL"),
-		RedisURL:    os.Getenv("REDIS_URL"),
-		QdrantURL:   os.Getenv("QDRANT_URL"),
-		OpenAIKey:   os.Getenv("OPENAI_KEY"),
+		Port:         getEnv("PORT", "8080"),
+		DatabaseURL:  os.Getenv("DATABASE_URL"),
+		RedisURL:     os.Getenv("REDIS_URL"),
+		QdrantURL:    os.Getenv("QDRANT_URL"),
+		GeminiApiKey: os.Getenv("GEMINI_API_KEY"),
 	}
 
 	if cfg.DatabaseURL == "" {
@@ -28,12 +28,12 @@ func Load() (*Config, error) {
 	if cfg.RedisURL == "" {
 		return nil, fmt.Errorf("REDIS_URL is required")
 	}
-	if cfg.QdrantURL == "" {
-		return nil, fmt.Errorf("QDRANT_URL is required")
-	}
-	if cfg.OpenAIKey == "" {
-		return nil, fmt.Errorf("OPENAI_KEY is required")
-	}
+	// if cfg.QdrantURL == "" {
+	// 	return nil, fmt.Errorf("QDRANT_URL is required")
+	// }
+	// if cfg.GeminiApiKey == "" {
+	// 	return nil, fmt.Errorf("GEMINI_API_KEY is required")
+	// }
 
 	return cfg, nil
 }
