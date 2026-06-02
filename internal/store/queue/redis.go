@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"ci-jarvis/internal/orchestrator"
+	"ci-jarvis/internal/types"
 
 	"github.com/redis/go-redis/v9"
 )
@@ -35,7 +35,7 @@ func NewQueue(redisURL string) (*Queue, error) {
 	return &Queue{client: client}, nil
 }
 
-func (q *Queue) Enqueue(job *orchestrator.Job) error {
+func (q *Queue) Enqueue(job *types.Job) error {
 	data, err := json.Marshal(job)
 	if err != nil {
 		return fmt.Errorf("failed to marshal job: %w", err)
@@ -51,7 +51,7 @@ func (q *Queue) Enqueue(job *orchestrator.Job) error {
 	return nil
 }
 
-func (q *Queue) Dequeue() (*orchestrator.Job, error) {
+func (q *Queue) Dequeue() (*types.Job, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
@@ -63,7 +63,7 @@ func (q *Queue) Dequeue() (*orchestrator.Job, error) {
 		return nil, fmt.Errorf("failed to dequeue job: %w", err)
 	}
 
-	var job orchestrator.Job
+	var job types.Job
 	if err := json.Unmarshal([]byte(data), &job); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal job: %w", err)
 	}

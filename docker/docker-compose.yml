@@ -1,3 +1,5 @@
+version: '3.8'
+
 services:
   postgres:
     image: postgres:16-alpine
@@ -31,6 +33,30 @@ services:
       timeout: 5s
       retries: 5
 
+  server:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.server
+    container_name: devagent-server
+    restart: unless-stopped
+    env_file:
+      - ../.env
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ..:/app:ro
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
 volumes:
   postgres_data:
   redis_data:
+

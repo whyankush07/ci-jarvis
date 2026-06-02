@@ -3,6 +3,7 @@ package main
 import (
 	"ci-jarvis/api"
 	"ci-jarvis/internal/config"
+	"ci-jarvis/internal/orchestrator"
 	db "ci-jarvis/internal/store/postgres"
 	"ci-jarvis/internal/store/queue"
 	"context"
@@ -40,6 +41,13 @@ func main() {
 
 	pg.RunMigrations()
 
+	// Orchestrator will be cancelled when we receive a shutdown signal.
+	orchCtx, orchCancel := context.WithCancel(context.Background())
+	defer orchCancel()
+
+	orch := orchestrator.NewOrchestrator(q, pg)
+	go orch.Start(orchCtx)
+
 	app := fiber.New()
 	api.RegisterRoutes(app, q)
 
@@ -61,7 +69,10 @@ func main() {
 		log.Printf("server error: %v", err)
 	}
 
-	// allow 10s for graceful shutdown
+	// Cancel the orchestrator context to signal it to shut down.
+	orchCancel()
+
+	// Allow 10s for graceful shutdown of all components.
 	_, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
