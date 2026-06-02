@@ -48,3 +48,11 @@ func (p *DB) RunMigrations() error {
 	log.Println("RunMigrations: no migrations configured (stub)")
 	return nil
 }
+
+// Close closes the underlying database connection pool.
+func (p *DB) Close() error {
+	if p == nil || p.client == nil {
+		return nil
+	}
+	return p.client.Close()
+}

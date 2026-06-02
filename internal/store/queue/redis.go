@@ -70,3 +70,7 @@ func (q *Queue) Dequeue() (*orchestrator.Job, error) {
 
 	return &job, nil
 }
+
+func (q *Queue) Close() error {
+	return q.client.Close()
+}
