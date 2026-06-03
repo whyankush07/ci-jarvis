@@ -31,9 +31,9 @@ func Load() (*Config, error) {
 	// if cfg.QdrantURL == "" {
 	// 	return nil, fmt.Errorf("QDRANT_URL is required")
 	// }
-	// if cfg.GeminiApiKey == "" {
-	// 	return nil, fmt.Errorf("GEMINI_API_KEY is required")
-	// }
+	if cfg.GeminiApiKey == "" {
+		return nil, fmt.Errorf("GEMINI_API_KEY is required")
+	}
 
 	return cfg, nil
 }

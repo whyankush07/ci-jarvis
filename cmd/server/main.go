@@ -2,7 +2,9 @@ package main
 
 import (
 	"ci-jarvis/api"
+	"ci-jarvis/internal/agents"
 	"ci-jarvis/internal/config"
+	"ci-jarvis/internal/llm"
 	"ci-jarvis/internal/orchestrator"
 	"ci-jarvis/internal/store/postgres"
 	"ci-jarvis/internal/store/queue"
@@ -39,13 +41,22 @@ func main() {
 		log.Fatalf("failed to initialize db connection: %v", err)
 	}
 
-	pg.RunMigrations()
+	if err := pg.RunMigrations(); err != nil {
+		log.Fatalf("failed to run database migrations: %v", err)
+	}
+
+	llmClient, err := llm.NewClient(context.Background(), cfg.GeminiApiKey)
+	if err != nil {
+		log.Fatalf("failed to initialize llm client: %v", err)
+	}
+	defer llmClient.Close()
 
 	// Orchestrator will be cancelled when we receive a shutdown signal.
 	orchCtx, orchCancel := context.WithCancel(context.Background())
 	defer orchCancel()
 
-	orch := orchestrator.NewOrchestrator(q, pg)
+	planner := agents.NewPlannerAgent(llmClient)
+	orch := orchestrator.NewOrchestrator(q, pg, llmClient, planner)
 	go orch.Start(orchCtx)
 
 	app := fiber.New()
