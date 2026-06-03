@@ -4,7 +4,7 @@ import (
 	"ci-jarvis/api"
 	"ci-jarvis/internal/config"
 	"ci-jarvis/internal/orchestrator"
-	db "ci-jarvis/internal/store/postgres"
+	"ci-jarvis/internal/store/postgres"
 	"ci-jarvis/internal/store/queue"
 	"context"
 	"log"
@@ -34,7 +34,7 @@ func main() {
 		log.Fatalf("failed to initialize queue: %v", err)
 	}
 
-	pg, err := db.NewDB(cfg.DatabaseURL)
+	pg, err := postgres.NewDB(cfg.DatabaseURL)
 	if err != nil {
 		log.Fatalf("failed to initialize db connection: %v", err)
 	}

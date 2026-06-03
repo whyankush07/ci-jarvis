@@ -5,16 +5,16 @@ import (
 	"log"
 	"time"
 
-	db "ci-jarvis/internal/store/postgres"
+	"ci-jarvis/internal/store/postgres"
 	"ci-jarvis/internal/store/queue"
 )
 
 type Orchestrator struct {
 	queue *queue.Queue
-	db    *db.DB
+	db    *postgres.DB
 }
 
-func NewOrchestrator(q *queue.Queue, database *db.DB) *Orchestrator {
+func NewOrchestrator(q *queue.Queue, database *postgres.DB) *Orchestrator {
 	return &Orchestrator{
 		queue: q,
 		db:    database,
@@ -46,7 +46,6 @@ func (o *Orchestrator) processQueue() {
 		return
 	}
 
-	// If queue is empty, job is nil
 	if job == nil {
 		return
 	}

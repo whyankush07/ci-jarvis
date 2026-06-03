@@ -1,10 +1,13 @@
-package db
+package postgres
 
 import (
 	"context"
 	"database/sql"
 	"fmt"
 	"log"
+	"os"
+	"path/filepath"
+	"strings"
 	"time"
 
 	_ "github.com/lib/pq"
@@ -33,19 +36,37 @@ func NewDB(dbUrl string) (*DB, error) {
 
 	p := &DB{client: db}
 
-	// // Run migrations (stub for now)
-	// if err := p.RunMigrations(); err != nil {
-	// 	log.Printf("warning: migrations failed: %v", err)
-	// }
-
 	return p, nil
 }
 
 func (p *DB) RunMigrations() error {
-	//!
-	//  integrate a migration tool (golang-migrate) later.
-	//!
-	log.Println("RunMigrations: no migrations configured (stub)")
+	log.Println("Starting database migrations...")
+
+	files, err := os.ReadDir("migrations")
+	if err != nil {
+		return fmt.Errorf("failed to read migrations directory: %w", err)
+	}
+
+	for _, file := range files {
+		if file.IsDir() || !strings.HasSuffix(file.Name(), ".sql") {
+			continue
+		}
+
+		filePath := filepath.Join("migrations", file.Name())
+		log.Printf("Running migration file: %s", file.Name())
+
+		content, err := os.ReadFile(filePath)
+		if err != nil {
+			return fmt.Errorf("failed to read migration file %s: %w", file.Name(), err)
+		}
+
+		_, err = p.client.Exec(string(content))
+		if err != nil {
+			return fmt.Errorf("failed to execute migration query from %s: %w", file.Name(), err)
+		}
+	}
+
+	log.Println("Database migrations applied successfully!")
 	return nil
 }
 

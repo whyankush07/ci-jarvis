@@ -48,7 +48,7 @@ func WebhookHandler(c *fiber.Ctx, q *queue.Queue) error {
 		}
 	} else {
 		log.Println("warning: GITHUB_WEBHOOK_SECRET not set; skipping signature verification")
-		//! todo -------
+		//! TODO:
 		//  In production, we should require a secret and reject unsigned requests.
 		// add a return statement here to enforce this once we have a way to set secrets in our deployment environment.
 		//!
