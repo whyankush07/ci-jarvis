@@ -33,13 +33,13 @@ func (o *Orchestrator) Start(ctx context.Context) {
 			log.Println("Orchestrator shutting down")
 			return
 		case <-ticker.C:
-			o.processQueue()
+			o.processQueue(ctx)
 		}
 	}
 }
 
 // processQueue dequeues a job and processes it.
-func (o *Orchestrator) processQueue() {
+func (o *Orchestrator) processQueue(ctx context.Context) {
 	job, err := o.queue.Dequeue()
 	if err != nil {
 		log.Printf("error dequeuing job: %v", err)
@@ -52,6 +52,10 @@ func (o *Orchestrator) processQueue() {
 
 	log.Printf("dequeued job: id=%s, repo=%s, pr=%s", job.ID, job.RepoURL, job.PullRequestURL)
 
-	// TODO: Store job in Postgres
+	if err := o.db.CreateRun(ctx, job); err != nil {
+		log.Printf("failed to store run in database: %v", err)
+		return
+	}
+
 	// TODO: Dispatch to planner agent
 }
