@@ -2,10 +2,8 @@ package agents
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log"
-	"strings"
 
 	"ci-jarvis/internal/llm"
 	"ci-jarvis/internal/types"
@@ -45,7 +43,7 @@ func (p *PlannerAgent) Execute(ctx context.Context, run *types.Run) (*types.Agen
 
 	// Parse the LLM response into a structured PlannerOutput
 	var plan types.PlannerOutput
-	err = p.ParseLLMResponse(response, &plan)
+	err = p.ParseJSONResponse(response, &plan)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse planner response: %w", err)
 	}
@@ -56,24 +54,4 @@ func (p *PlannerAgent) Execute(ctx context.Context, run *types.Run) (*types.Agen
 		Output:    response,
 		Data:      plan,
 	}, nil
-}
-
-func (p *PlannerAgent) ParseLLMResponse(response string, plan *types.PlannerOutput) error {
-	// Clean up LLM response (strip markdown code blocks if present)
-	cleanJSON := response
-	if strings.Contains(cleanJSON, "```json") {
-		parts := strings.Split(cleanJSON, "```json")
-		if len(parts) > 1 {
-			cleanJSON = strings.Split(parts[1], "```")[0]
-		}
-	} else if strings.Contains(cleanJSON, "```") {
-		parts := strings.Split(cleanJSON, "```")
-		if len(parts) > 1 {
-			cleanJSON = strings.Split(parts[1], "```")[0]
-		}
-	}
-
-	cleanJSON = strings.TrimSpace(cleanJSON)
-
-	return json.Unmarshal([]byte(cleanJSON), plan)
 }

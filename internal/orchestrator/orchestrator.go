@@ -9,6 +9,7 @@ import (
 	"ci-jarvis/internal/llm"
 	"ci-jarvis/internal/store/postgres"
 	"ci-jarvis/internal/store/queue"
+	"ci-jarvis/internal/tools"
 	"ci-jarvis/internal/types"
 )
 
@@ -17,14 +18,18 @@ type Orchestrator struct {
 	db        *postgres.DB
 	llmClient *llm.Client
 	planner   agents.Agent
+	coder     agents.Agent
+	github    *tools.GitHubTool
 }
 
-func NewOrchestrator(q *queue.Queue, database *postgres.DB, llmClient *llm.Client, planner agents.Agent) *Orchestrator {
+func NewOrchestrator(q *queue.Queue, database *postgres.DB, llmClient *llm.Client, planner agents.Agent, coder agents.Agent, github *tools.GitHubTool) *Orchestrator {
 	return &Orchestrator{
 		queue:     q,
 		db:        database,
 		llmClient: llmClient,
 		planner:   planner,
+		coder:     coder,
+		github:    github,
 	}
 }
 
@@ -64,25 +69,58 @@ func (o *Orchestrator) processQueue(ctx context.Context) {
 		return
 	}
 
+	// Fetch PR diff for context
+	log.Printf("fetching diff for PR: %s", job.PullRequestURL)
+	diff, err := o.github.FetchPRDiff(job.PullRequestURL)
+	if err != nil {
+		log.Printf("warning: failed to fetch PR diff: %v", err)
+	}
+
 	// Dispatch to planner agent
 	run := &types.Run{
 		ID:             job.ID,
 		RepoURL:        job.RepoURL,
 		PullRequestURL: job.PullRequestURL,
+		Diff:           diff,
 		Status:         types.RunPlanning,
+		CurrentStep:    "Analyzing PR",
 	}
 
-	result, err := o.planner.Execute(ctx, run)
+	// Update DB to planning
+	o.db.UpdateRun(ctx, run.ID, string(types.RunPlanning), "Analyzing PR")
+
+	plannerResult, err := o.planner.Execute(ctx, run)
 	if err != nil {
 		log.Printf("planner execution failed: %v", err)
+		o.db.UpdateRun(ctx, run.ID, string(types.RunFailed), "Planning failed")
 		return
 	}
 
 	// Log planner output fields
-	if plan, ok := result.Data.(types.PlannerOutput); ok {
+	if plan, ok := plannerResult.Data.(types.PlannerOutput); ok {
 		log.Printf("planner finished: success=%v, summary=%s, priority=%s, steps=%d, risks=%d",
-			result.Success, plan.Summary, plan.Priority, len(plan.Steps), len(plan.Risks))
-	} else {
-		log.Printf("planner finished: success=%v, output_length=%d", result.Success, len(result.Output))
+			plannerResult.Success, plan.Summary, plan.Priority, len(plan.Steps), len(plan.Risks))
+		o.db.UpdateRunMetadata(ctx, run.ID, plan)
+		run.Plan = &plan
 	}
+
+	// Move to Coding Phase
+	run.Status = types.RunCoding
+	o.db.UpdateRun(ctx, run.ID, string(types.RunCoding), "Generating code changes")
+
+	coderResult, err := o.coder.Execute(ctx, run)
+	if err != nil {
+		log.Printf("coder execution failed: %v", err)
+		o.db.UpdateRun(ctx, run.ID, string(types.RunFailed), "Coding failed")
+		return
+	}
+
+	if coderOutput, ok := coderResult.Data.(types.CoderOutput); ok {
+		log.Printf("coder finished: success=%v, explanation=%s, changes=%d",
+			coderResult.Success, coderOutput.Explanation, len(coderOutput.Changes))
+		o.db.UpdateRunMetadata(ctx, run.ID, coderOutput)
+	}
+
+	// For now, mark as completed after coding
+	o.db.UpdateRun(ctx, run.ID, string(types.RunCompleted), "Finished processing")
 }

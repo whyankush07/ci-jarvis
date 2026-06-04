@@ -11,6 +11,7 @@ type Config struct {
 	RedisURL     string
 	QdrantURL    string
 	GeminiApiKey string
+	GithubToken  string
 }
 
 func Load() (*Config, error) {
@@ -20,6 +21,7 @@ func Load() (*Config, error) {
 		RedisURL:     os.Getenv("REDIS_URL"),
 		QdrantURL:    os.Getenv("QDRANT_URL"),
 		GeminiApiKey: os.Getenv("GEMINI_API_KEY"),
+		GithubToken:  os.Getenv("GITHUB_TOKEN"),
 	}
 
 	if cfg.DatabaseURL == "" {

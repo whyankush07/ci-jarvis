@@ -8,6 +8,7 @@ import (
 	"ci-jarvis/internal/orchestrator"
 	"ci-jarvis/internal/store/postgres"
 	"ci-jarvis/internal/store/queue"
+	"ci-jarvis/internal/tools"
 	"context"
 	"log"
 	"os"
@@ -56,7 +57,9 @@ func main() {
 	defer orchCancel()
 
 	planner := agents.NewPlannerAgent(llmClient)
-	orch := orchestrator.NewOrchestrator(q, pg, llmClient, planner)
+	coder := agents.NewCoderAgent(llmClient)
+	ghTool := tools.NewGitHubTool(cfg.GithubToken)
+	orch := orchestrator.NewOrchestrator(q, pg, llmClient, planner, coder, ghTool)
 	go orch.Start(orchCtx)
 
 	app := fiber.New()

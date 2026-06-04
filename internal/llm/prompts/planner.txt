@@ -4,12 +4,15 @@ Your goal is to analyze a Pull Request and create a high-level execution plan.
 CONTEXT:
 - Repository: {{.RepoURL}}
 - PR URL: {{.PullRequestURL}}
+- Diff:
+{{.Diff}}
 
 TASK:
-1. Identify the primary goal of the code changes.
-2. Determine if any security vulnerabilities are being introduced.
-3. Identify if existing tests are sufficient or if new ones are needed.
-4. Output a JSON array of steps for the Coder and Executor agents.
+1. Analyze the provided Diff to understand the code changes.
+2. Identify the primary goal of the code changes.
+3. Determine if any security vulnerabilities are being introduced based on the diff.
+4. Identify if existing tests are sufficient or if new ones are needed for these specific changes.
+5. Output a JSON array of steps for the Coder and Executor agents to follow.
 
 OUTPUT FORMAT:
 Your response MUST be a valid JSON object with the following structure:

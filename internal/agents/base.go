@@ -3,6 +3,7 @@ package agents
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -52,4 +53,24 @@ func (b *BaseAgent) LoadPrompt(agentName string, data interface{}) (string, erro
 	}
 
 	return buf.String(), nil
+}
+
+// ParseJSONResponse cleans up Markdown-wrapped JSON and unmarshals it into the target struct.
+func (b *BaseAgent) ParseJSONResponse(response string, target interface{}) error {
+	cleanJSON := response
+	if strings.Contains(cleanJSON, "```json") {
+		parts := strings.Split(cleanJSON, "```json")
+		if len(parts) > 1 {
+			cleanJSON = strings.Split(parts[1], "```")[0]
+		}
+	} else if strings.Contains(cleanJSON, "```") {
+		parts := strings.Split(cleanJSON, "```")
+		if len(parts) > 1 {
+			cleanJSON = strings.Split(parts[1], "```")[0]
+		}
+	}
+
+	cleanJSON = strings.TrimSpace(cleanJSON)
+
+	return json.Unmarshal([]byte(cleanJSON), target)
 }

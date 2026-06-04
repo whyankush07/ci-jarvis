@@ -10,12 +10,12 @@ import (
 
 func (db *DB) CreateRun(ctx context.Context, j *types.Job) error {
 	query := `
-		INSERT INTO runs(id, repo_url, pr_url, status, created_at, updated_at)
-		VALUES($1, $2, $3, $4, $5, $6)
+		INSERT INTO runs(id, repo_url, pr_url, status, current_step, created_at, updated_at)
+		VALUES($1, $2, $3, $4, $5, $6, $7)
 	`
 
 	now := time.Now()
-	_, err := db.client.ExecContext(ctx, query, j.ID, j.RepoURL, j.PullRequestURL, "pending", now, now)
+	_, err := db.client.ExecContext(ctx, query, j.ID, j.RepoURL, j.PullRequestURL, "pending", "", now, now)
 	if err != nil {
 		return fmt.Errorf("Failed to insert run! %v", err)
 	}
