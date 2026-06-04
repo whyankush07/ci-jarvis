@@ -8,7 +8,7 @@ import (
 	"ci-jarvis/internal/orchestrator"
 	"ci-jarvis/internal/store/postgres"
 	"ci-jarvis/internal/store/queue"
-	"ci-jarvis/internal/tools"
+	"ci-jarvis/internal/tools/github"
 	"context"
 	"log"
 	"os"
@@ -58,7 +58,7 @@ func main() {
 
 	planner := agents.NewPlannerAgent(llmClient)
 	coder := agents.NewCoderAgent(llmClient)
-	ghTool := tools.NewGitHubTool(cfg.GithubToken)
+	ghTool := github.NewGitHubTool(cfg.GithubToken)
 	orch := orchestrator.NewOrchestrator(q, pg, llmClient, planner, coder, ghTool)
 	go orch.Start(orchCtx)
 

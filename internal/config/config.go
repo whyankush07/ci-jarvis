@@ -33,9 +33,12 @@ func Load() (*Config, error) {
 	// if cfg.QdrantURL == "" {
 	// 	return nil, fmt.Errorf("QDRANT_URL is required")
 	// }
-	if cfg.GeminiApiKey == "" {
-		return nil, fmt.Errorf("GEMINI_API_KEY is required")
-	}
+	// if cfg.GeminiApiKey == "" {
+	// 	return nil, fmt.Errorf("GEMINI_API_KEY is required")
+	// }
+	// if cfg.GithubToken == "" {
+	// 	return nil, fmt.Errorf("GITHUB_TOKEN is required")
+	// }
 
 	return cfg, nil
 }

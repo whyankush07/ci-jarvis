@@ -9,7 +9,7 @@ import (
 	"ci-jarvis/internal/llm"
 	"ci-jarvis/internal/store/postgres"
 	"ci-jarvis/internal/store/queue"
-	"ci-jarvis/internal/tools"
+	"ci-jarvis/internal/tools/github"
 	"ci-jarvis/internal/types"
 )
 
@@ -19,10 +19,10 @@ type Orchestrator struct {
 	llmClient *llm.Client
 	planner   agents.Agent
 	coder     agents.Agent
-	github    *tools.GitHubTool
+	github    *github.GitHubTool
 }
 
-func NewOrchestrator(q *queue.Queue, database *postgres.DB, llmClient *llm.Client, planner agents.Agent, coder agents.Agent, github *tools.GitHubTool) *Orchestrator {
+func NewOrchestrator(q *queue.Queue, database *postgres.DB, llmClient *llm.Client, planner agents.Agent, coder agents.Agent, github *github.GitHubTool) *Orchestrator {
 	return &Orchestrator{
 		queue:     q,
 		db:        database,

@@ -1,4 +1,4 @@
-package tools
+package github
 
 import (
 	"fmt"
@@ -15,7 +15,7 @@ func NewGitHubTool(token string) *GitHubTool {
 	return &GitHubTool{token: token}
 }
 
-// FetchPRDiff retrieves the diff content of a pull request.
+// retrieves the diff content of a pull request.
 func (g *GitHubTool) FetchPRDiff(prURL string) (string, error) {
 	// Simple conversion: https://github.com/user/repo/pull/1 -> https://github.com/user/repo/pull/1.diff
 	diffURL := prURL
