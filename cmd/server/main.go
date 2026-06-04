@@ -58,8 +58,9 @@ func main() {
 
 	planner := agents.NewPlannerAgent(llmClient)
 	coder := agents.NewCoderAgent(llmClient)
+	reviewer := agents.NewReviewerAgent(llmClient)
 	ghTool := github.NewGitHubTool(cfg.GithubToken)
-	orch := orchestrator.NewOrchestrator(q, pg, llmClient, planner, coder, ghTool)
+	orch := orchestrator.NewOrchestrator(q, pg, llmClient, planner, coder, reviewer, ghTool)
 	go orch.Start(orchCtx)
 
 	app := fiber.New()

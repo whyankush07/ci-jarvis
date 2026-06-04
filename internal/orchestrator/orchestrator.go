@@ -2,7 +2,9 @@ package orchestrator
 
 import (
 	"context"
+	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"ci-jarvis/internal/agents"
@@ -19,16 +21,18 @@ type Orchestrator struct {
 	llmClient *llm.Client
 	planner   agents.Agent
 	coder     agents.Agent
+	reviewer  agents.Agent
 	github    *github.GitHubTool
 }
 
-func NewOrchestrator(q *queue.Queue, database *postgres.DB, llmClient *llm.Client, planner agents.Agent, coder agents.Agent, github *github.GitHubTool) *Orchestrator {
+func NewOrchestrator(q *queue.Queue, database *postgres.DB, llmClient *llm.Client, planner agents.Agent, coder agents.Agent, reviewer agents.Agent, github *github.GitHubTool) *Orchestrator {
 	return &Orchestrator{
 		queue:     q,
 		db:        database,
 		llmClient: llmClient,
 		planner:   planner,
 		coder:     coder,
+		reviewer:  reviewer,
 		github:    github,
 	}
 }
@@ -119,8 +123,63 @@ func (o *Orchestrator) processQueue(ctx context.Context) {
 		log.Printf("coder finished: success=%v, explanation=%s, changes=%d",
 			coderResult.Success, coderOutput.Explanation, len(coderOutput.Changes))
 		o.db.UpdateRunMetadata(ctx, run.ID, coderOutput)
+		run.Metadata = coderOutput // Pass coder output as metadata for reviewer
 	}
 
-	// For now, mark as completed after coding
+	// Move to Reviewing Phase
+	run.Status = types.RunReviewing
+	o.db.UpdateRun(ctx, run.ID, string(types.RunReviewing), "Reviewing generated changes")
+
+	reviewerResult, err := o.reviewer.Execute(ctx, run)
+	if err != nil {
+		log.Printf("reviewer execution failed: %v", err)
+		o.db.UpdateRun(ctx, run.ID, string(types.RunFailed), "Review failed")
+		return
+	}
+
+	if reviewOutput, ok := reviewerResult.Data.(types.ReviewerOutput); ok {
+		log.Printf("reviewer finished: success=%v, approved=%v, comments=%d",
+			reviewerResult.Success, reviewOutput.Approved, len(reviewOutput.Comments))
+		o.db.UpdateRunMetadata(ctx, run.ID, reviewOutput)
+
+		// Post comment to GitHub
+		o.postReviewToGitHub(run.PullRequestURL, reviewOutput)
+	}
+
+	// For now, mark as completed after review
 	o.db.UpdateRun(ctx, run.ID, string(types.RunCompleted), "Finished processing")
+}
+
+func (o *Orchestrator) postReviewToGitHub(prURL string, review types.ReviewerOutput) {
+	var sb strings.Builder
+	sb.WriteString("## 🤖 Jarvis AI Review Report\n\n")
+
+	if review.Approved {
+		sb.WriteString("### ✅ Status: Approved\n\n")
+	} else {
+		sb.WriteString("### ⚠️ Status: Changes Requested\n\n")
+	}
+
+	sb.WriteString("#### Summary\n")
+	sb.WriteString(review.Summary + "\n\n")
+
+	if len(review.Comments) > 0 {
+		sb.WriteString("#### Detailed Comments\n")
+		for _, comment := range review.Comments {
+			levelEmoji := "ℹ️"
+			if comment.Level == "warning" {
+				levelEmoji = "⚠️"
+			} else if comment.Level == "error" {
+				levelEmoji = "❌"
+			}
+			sb.WriteString(fmt.Sprintf("- %s **%s** (Line %d): %s\n", levelEmoji, comment.File, comment.Line, comment.Comment))
+		}
+	}
+
+	err := o.github.PostPRComment(prURL, sb.String())
+	if err != nil {
+		log.Printf("failed to post comment to GitHub: %v", err)
+	} else {
+		log.Printf("successfully posted review comment to GitHub")
+	}
 }
