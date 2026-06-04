@@ -56,3 +56,66 @@ func (db *DB) UpdateRunMetadata(ctx context.Context, id string, metadata interfa
 	}
 	return nil
 }
+
+func (db *DB) ListRuns(ctx context.Context, limit, offset int) ([]types.Run, error) {
+	query := `
+		SELECT id, repo_url, pr_url, status, current_step, metadata, created_at, updated_at
+		FROM runs
+		ORDER BY created_at DESC
+		LIMIT $1
+		OFFSET $2
+	`
+	rows, err := db.client.QueryContext(ctx, query, limit, offset)
+	if err != nil {
+		return nil, fmt.Errorf("unable to fetch runs from database! %v", err)
+	}
+	defer rows.Close()
+
+	var runs []types.Run
+	for rows.Next() {
+		var r types.Run
+		var metaBytes []byte
+		err := rows.Scan(&r.ID, &r.RepoURL, &r.PullRequestURL, &r.Status, &r.CurrentStep, &metaBytes, &r.CreatedAt, &r.UpdatedAt)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan run row: %v", err)
+		}
+
+		if len(metaBytes) > 0 {
+			if err := json.Unmarshal(metaBytes, &r.Metadata); err != nil {
+				return nil, fmt.Errorf("failed to unmarshal run metadata: %v", err)
+			}
+		}
+
+		runs = append(runs, r)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating run rows: %v", err)
+	}
+
+	return runs, nil
+}
+
+func (db *DB) GetRunById(ctx context.Context, id string) (*types.Run, error) {
+	query := `
+		SELECT id, repo_url, pr_url, status, current_step, metadata, created_at, updated_at
+		FROM runs
+		WHERE id = $1
+	`
+	var r types.Run
+	var metaBytes []byte
+	err := db.client.QueryRowContext(ctx, query, id).Scan(
+		&r.ID, &r.RepoURL, &r.PullRequestURL, &r.Status, &r.CurrentStep, &metaBytes, &r.CreatedAt, &r.UpdatedAt,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("unable to fetch data from database %v", err)
+	}
+
+	if len(metaBytes) > 0 {
+		if err := json.Unmarshal(metaBytes, &r.Metadata); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal run metadata: %v", err)
+		}
+	}
+
+	return &r, nil
+}

@@ -64,7 +64,7 @@ func main() {
 	go orch.Start(orchCtx)
 
 	app := fiber.New()
-	api.RegisterRoutes(app, q)
+	api.RegisterRoutes(app, q, pg)
 
 	addr := ":" + cfg.Port
 	log.Printf("Server starting on %s\n", addr)
