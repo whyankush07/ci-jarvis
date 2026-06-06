@@ -55,3 +55,18 @@ func (c *Client) GenerateText(ctx context.Context, prompt string) (string, error
 
 	return responseText, nil
 }
+
+func (c *Client) EmbedText(ctx context.Context, text string) ([]float32, error) {
+	model := c.client.EmbeddingModel("text-embedding-004")
+
+	res, err := model.EmbedContent(ctx, genai.Text(text))
+	if err != nil {
+		return nil, fmt.Errorf("failed to embed content: %w", err)
+	}
+
+	if res.Embedding == nil {
+		return nil, fmt.Errorf("no embedding returned in model response")
+	}
+
+	return res.Embedding.Values, nil
+}
