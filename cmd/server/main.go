@@ -8,7 +8,9 @@ import (
 	"ci-jarvis/internal/orchestrator"
 	"ci-jarvis/internal/store/postgres"
 	"ci-jarvis/internal/store/queue"
+	"ci-jarvis/internal/store/vector"
 	"ci-jarvis/internal/tools/github"
+	"ci-jarvis/internal/tools/rag"
 	"context"
 	"log"
 	"os"
@@ -52,11 +54,31 @@ func main() {
 	}
 	defer llmClient.Close()
 
-	// Orchestrator will be cancelled when we receive a shutdown signal.
+	vStore, err := vector.NewQdrantStore(cfg.QdrantURL, "code_snippets")
+	if err != nil {
+		log.Printf("warning: failed to initialize vector store: %v", err)
+	} else {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		if err := vStore.CreateCollection(ctx, 768); err != nil {
+			log.Printf("info: collection might already exist or failed to create: %v", err)
+		}
+		cancel()
+
+		go func() {
+			crawler := rag.NewCrawler(llmClient, vStore)
+			log.Println("Starting initial codebase indexing...")
+			if err := crawler.IndexRepository(context.Background(), "."); err != nil {
+				log.Printf("error indexing repository: %v", err)
+			} else {
+				log.Println("Codebase indexing complete")
+			}
+		}()
+	}
+
 	orchCtx, orchCancel := context.WithCancel(context.Background())
 	defer orchCancel()
 
-	planner := agents.NewPlannerAgent(llmClient)
+	planner := agents.NewPlannerAgent(llmClient, vStore)
 	coder := agents.NewCoderAgent(llmClient)
 	reviewer := agents.NewReviewerAgent(llmClient)
 	ghTool := github.NewGitHubTool(cfg.GithubToken)
@@ -84,7 +106,6 @@ func main() {
 		log.Printf("server error: %v", err)
 	}
 
-	// Cancel the orchestrator context to signal it to shut down.
 	orchCancel()
 
 	// Allow 10s for graceful shutdown of all components.

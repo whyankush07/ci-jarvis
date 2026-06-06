@@ -7,6 +7,12 @@ CONTEXT:
 - Diff:
 {{.Diff}}
 
+{{if .Metadata.RelatedContext}}
+RELATED REPOSITORY CONTEXT:
+The following code snippets from the rest of the repository were found to be relevant to this PR:
+{{.Metadata.RelatedContext}}
+{{end}}
+
 TASK:
 1. Analyze the provided Diff to understand the code changes.
 2. Identify the primary goal of the code changes.
