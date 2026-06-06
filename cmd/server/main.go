@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/joho/godotenv"
 )
 
@@ -48,13 +49,18 @@ func main() {
 		log.Fatalf("failed to run database migrations: %v", err)
 	}
 
+	// if err := pg.CreateMoc(context.Background()); err != nil {
+	// 	log.Fatalf("Error in seeding database: %v", err)
+
+	// }
+
 	llmClient, err := llm.NewClient(context.Background(), cfg.GeminiApiKey)
 	if err != nil {
 		log.Fatalf("failed to initialize llm client: %v", err)
 	}
 	defer llmClient.Close()
 
-	vStore, err := vector.NewQdrantStore(cfg.QdrantURL, "code_snippets")
+	vStore, err := vector.NewQdrantStore(cfg.QdrantURL, cfg.QdrantApiKey, "code_snippets")
 	if err != nil {
 		log.Printf("warning: failed to initialize vector store: %v", err)
 	} else {
@@ -86,6 +92,16 @@ func main() {
 	go orch.Start(orchCtx)
 
 	app := fiber.New()
+
+	origins := "http://localhost:8080"
+	if cfg.AllowedOrigins != "" {
+		origins += "," + cfg.AllowedOrigins
+	}
+	app.Use(cors.New(cors.Config{
+		AllowOrigins: origins,
+		AllowHeaders: "Origin, Content-Type, Accept",
+	}))
+
 	api.RegisterRoutes(app, q, pg)
 
 	addr := ":" + cfg.Port

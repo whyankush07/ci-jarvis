@@ -6,22 +6,26 @@ import (
 )
 
 type Config struct {
-	Port         string
-	DatabaseURL  string
-	RedisURL     string
-	QdrantURL    string
-	GeminiApiKey string
-	GithubToken  string
+	Port           string
+	DatabaseURL    string
+	RedisURL       string
+	QdrantURL      string
+	QdrantApiKey   string
+	GeminiApiKey   string
+	GithubToken    string
+	AllowedOrigins string
 }
 
 func Load() (*Config, error) {
 	cfg := &Config{
-		Port:         getEnv("PORT", "8080"),
-		DatabaseURL:  os.Getenv("DATABASE_URL"),
-		RedisURL:     os.Getenv("REDIS_URL"),
-		QdrantURL:    os.Getenv("QDRANT_URL"),
-		GeminiApiKey: os.Getenv("GEMINI_API_KEY"),
-		GithubToken:  os.Getenv("GITHUB_TOKEN"),
+		Port:           getEnv("PORT", "8080"),
+		DatabaseURL:    os.Getenv("DATABASE_URL"),
+		RedisURL:       os.Getenv("REDIS_URL"),
+		QdrantURL:      os.Getenv("QDRANT_URL"),
+		QdrantApiKey:   os.Getenv("QDRANT_API_KEY"),
+		GeminiApiKey:   os.Getenv("GEMINI_API_KEY"),
+		GithubToken:    os.Getenv("GITHUB_TOKEN"),
+		AllowedOrigins: os.Getenv("ALLOWED_ORIGINS"),
 	}
 
 	if cfg.DatabaseURL == "" {

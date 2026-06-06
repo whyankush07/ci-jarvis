@@ -39,6 +39,20 @@ func NewDB(dbUrl string) (*DB, error) {
 	return p, nil
 }
 
+// func (db *DB) CreateMoc(ctx context.Context) error {
+// 	query := `
+// 		INSERT INTO runs(id, repo_url, pr_url, status, current_step, created_at, updated_at)
+// 		VALUES($1, $2, $3, $4, $5, $6, $7)
+// 	`
+
+// 	now := time.Now()
+// 	_, err := db.client.ExecContext(ctx, query, uuid.New().String(), "https://github.com/whyankush07/ci-jarvis", "https://github.com/whyankush07/ci-jarvis/pull/1", "completed", "", now, now)
+// 	if err != nil {
+// 		return fmt.Errorf("Failed to insert run! %v", err)
+// 	}
+// 	return nil
+// }
+
 func (p *DB) RunMigrations() error {
 	log.Println("Starting database migrations...")
 

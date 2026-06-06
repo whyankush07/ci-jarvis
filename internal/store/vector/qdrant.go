@@ -3,6 +3,7 @@ package vector
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/qdrant/go-client/qdrant"
 )
@@ -17,10 +18,18 @@ type QdrantStore struct {
 	collection string
 }
 
-func NewQdrantStore(url string, collection string) (*QdrantStore, error) {
+func NewQdrantStore(url string, apiKey string, collection string) (*QdrantStore, error) {
+	// Strip protocol from URL if present
+	host := url
+	host = strings.TrimPrefix(host, "https://")
+	host = strings.TrimPrefix(host, "http://")
+	host = strings.Split(host, ":")[0] // Strip port if present
+
 	client, err := qdrant.NewClient(&qdrant.Config{
-		Host: url,
-		Port: 6334, // gRPC port
+		Host:   host,
+		Port:   6334,
+		APIKey: apiKey,
+		UseTLS: true,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create qdrant client: %w", err)
@@ -91,7 +100,18 @@ func (q *QdrantStore) Search(ctx context.Context, vector []float32, limit uint64
 func convertPayload(qPayload map[string]*qdrant.Value) map[string]interface{} {
 	res := make(map[string]interface{})
 	for k, v := range qPayload {
-		res[k] = v.GetKind()
+		switch v.GetKind().(type) {
+		case *qdrant.Value_StringValue:
+			res[k] = v.GetStringValue()
+		case *qdrant.Value_IntegerValue:
+			res[k] = v.GetIntegerValue()
+		case *qdrant.Value_DoubleValue:
+			res[k] = v.GetDoubleValue()
+		case *qdrant.Value_BoolValue:
+			res[k] = v.GetBoolValue()
+		default:
+			res[k] = v.GetKind()
+		}
 	}
 	return res
 }

@@ -56,12 +56,19 @@ func (c *Client) GenerateText(ctx context.Context, prompt string) (string, error
 	return responseText, nil
 }
 
+// EmbedText generates a vector embedding for the given text.
 func (c *Client) EmbedText(ctx context.Context, text string) ([]float32, error) {
+	// Using a more widely available model to avoid API version issues
 	model := c.client.EmbeddingModel("text-embedding-004")
 
 	res, err := model.EmbedContent(ctx, genai.Text(text))
 	if err != nil {
-		return nil, fmt.Errorf("failed to embed content: %w", err)
+		// Fallback to older stable model if text-embedding-004 fails
+		model = c.client.EmbeddingModel("embedding-001")
+		res, err = model.EmbedContent(ctx, genai.Text(text))
+		if err != nil {
+			return nil, fmt.Errorf("failed to embed content: %w", err)
+		}
 	}
 
 	if res.Embedding == nil {
